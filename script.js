@@ -25,35 +25,14 @@ Promise.all(
     })
 
 function arrayData() {
-    let names = persons.map(item => item.personal.firstName);
-    console.log(names);
-    let lastNames = persons.map(item => item.personal.lastName);
-    console.log(lastNames);
-    let personsWithCities = persons.map(item => { // заменим locationId на название города
-        let city = cities.find(function (cityItem) {
-            return cityItem.id === item.personal.locationId;  // Находим город по locationId
-        });
-        if (city && city.name) {
-            item.city = city.name;
-        }
-        return item.city;
-    });
-    console.log(personsWithCities);
-
-    let obj = {
-        firstName: names[0],
-        lastName: lastNames[0],
-        city: personsWithCities[0],
-    }
 
     function getInfo() {
-        return (`${this.firstName} ${this.lastName}, ${this.city}`);
+        let locationId = this.personal.locationId;
+        let city = cities.find(cityId => cityId.id === locationId);
+        return (`${this.personal.firstName} ${this.personal.lastName}, ${city.name}`);
     }
 
-    let result = function () {
-        return getInfo.call(obj);
-    }
-    console.log(result());
+    console.log(getInfo.call(persons[0])); // вывод самого первого объекта из массива persons
 
     // Функция для поиска дизайнеров, владеющих Figma
     function findFigmaDesigners() {
@@ -63,12 +42,7 @@ function arrayData() {
             designer.skills.some(skill => skill.name === 'Figma'));
 
         designersWithFigma.forEach(designer => {
-            const obj2 = {
-                firstName: designer.personal.firstName,
-                lastName: designer.personal.lastName,
-                city: designer.city,
-            }
-            console.log(getInfo.call(obj2));
+            console.log('figma designers', getInfo.call(designer));
         })
     }
 
@@ -80,12 +54,7 @@ function arrayData() {
 
         let developersWithReact = developers.find(item => item.skills.some(skill => skill.name === 'React'));
 
-        const obj3 = {
-            firstName: developersWithReact.personal.firstName,
-            lastName: developersWithReact.personal.lastName,
-            city: developersWithReact.city,
-        }
-        console.log(getInfo.call(obj3));
+        console.log('react developer', getInfo.call(developersWithReact));
     }
 
     findReactDevelopers();
@@ -98,10 +67,10 @@ function arrayData() {
             let birthDay = item.personal.birthday;
             let dateParts = birthDay.split('.');
             let newDate = new Date(+dateParts[2], +dateParts[1], +dateParts[0]);
-            let year = newDate.getFullYear();
-            return year <= 2007;
+            let year = newDate.getFullYear(); //год рождения
+            let currentYear = new Date().getFullYear(); //получили текущий год
+            return currentYear - year > 18; //получили true или false
         });
-
         if (allOlderThan18) {
             console.log('Все пользователи старше 18 лет.');
         } else {
@@ -117,16 +86,15 @@ function arrayData() {
         let backendDevelopersCity = backendDevelopers.filter(item => item.personal.locationId === 1);
 
         let fullDayBackendDeveloper = backendDevelopersCity.filter(item => item.request.some(request => request.value === 'Полная'));
-        console.log(fullDayBackendDeveloper)
 
-        let price = fullDayBackendDeveloper.filter(item => item.request.some(request => request.name === 'Зарплата'))
+        let price = fullDayBackendDeveloper.filter(item => item.request.some(request => request.name === 'Зарплата'));
 
         let sorted = price.sort((a, b) => {
             let aSalary = a.request.find(item => item.name === 'Зарплата').value;
             let bSalary = b.request.find(item => item.name === 'Зарплата').value;
-            return parseInt(aSalary, 10) - parseInt(bSalary, 10);
+            return aSalary - bSalary;
         });
-        console.log(sorted)
+        console.log('отсортировано по зарплате', sorted);
     }
 
     sortInAscendingOrder();
@@ -140,12 +108,12 @@ function arrayData() {
         let designers = persons.filter(item => item.personal.specializationId === 3); //находим дизайнеров по id=3
 
         let designersWithFigma = designers.filter(designer => // находим дизайнеров, владеющих Figma
-            designer.skills.some(skill => skill.name === 'Figma' && parseInt(skill.level, 10) > minLevel));
-        console.log(designersWithFigma);
+            designer.skills.some(skill => skill.name === 'Figma' && skill.level > minLevel));
+        console.log('уровень по Figma (6 и более)', designersWithFigma);
 
         let designersWithPhotoshop = designersWithFigma.filter(designer => // находим дизайнеров, владеющих Figma и Photoshop
-            designer.skills.some(skill => skill.name === 'Photoshop' && parseInt(skill.level, 10) > minLevel));
-        console.log(designersWithPhotoshop);
+            designer.skills.some(skill => skill.name === 'Photoshop' && skill.level > minLevel));
+        console.log('уровень по Figma и Photoshop (6 и более)', designersWithPhotoshop);
     }
 
     findDesigners();
@@ -156,44 +124,26 @@ function arrayData() {
 
         let specialist = persons.filter(item => item.personal.specializationId === specializationId);
 
-        let bestSpecialist = specialist.reduce((best, current) => {
-            let bestSkill = best ? best.skills.find(item => item.name === skillName) : null; //лучший текущий специалист
-            let currentSkill = current.skills.find(item => item.name === skillName); //текущий специалист
-            return (bestSkill && currentSkill && currentSkill.level > bestSkill.level ? current : best);
+        let developersSkillName = specialist.filter(item => item.skills.some(skill => skill.name === skillName));
+        // console.log('распределение по skillName', developersSkillName);
+
+        let developersSorted = developersSkillName.sort((a, b) => {
+            let aSkill = a.skills.find(item => item.name === skillName).level;
+            let bSkill = b.skills.find(item => item.name === skillName).level;
+            return bSkill - aSkill; // сортировка от высшего уровня
         });
-        return bestSpecialist;
+        // console.log('отсортировано по уровню', developersSorted);
+
+        return developersSorted.find(item => item.skills.some(skill => skill.name === skillName)); // берём самого первого из отсортированных
     }
 
-    let designer = findBestSpecialist(3, 'Figma')
-    let frontendDeveloper = findBestSpecialist(1, 'Angular') //здесь ошибка - выводит самого первого по ID 1, по Angular не ищет
-    let backendDeveloper = findBestSpecialist(2, 'Go')
+    let designer = findBestSpecialist(3, 'Figma');
+    let frontendDeveloper = findBestSpecialist(1, 'Angular');
+    let backendDeveloper = findBestSpecialist(2, 'Go');
 
-    console.log(designer)
-    console.log(frontendDeveloper)
-    console.log(backendDeveloper)
-
-
-    const designerObj = {
-        firstName: designer.personal.firstName,
-        lastName: designer.personal.lastName,
-        city: designer.city,
-
-    }
-    const frontendDeveloperObj = {
-        firstName: frontendDeveloper.personal.firstName,
-        lastName: frontendDeveloper.personal.lastName,
-        city: frontendDeveloper.city,
-
-    }
-    const backendDeveloperObj = {
-        firstName: backendDeveloper.personal.firstName,
-        lastName: backendDeveloper.personal.lastName,
-        city: backendDeveloper.city,
-
-    }
-    console.log(getInfo.call(designerObj));
-    console.log(getInfo.call(frontendDeveloperObj));
-    console.log(getInfo.call(backendDeveloperObj));
+    console.log('best designer', getInfo.call(designer));
+    console.log('best frontendDeveloper', getInfo.call(frontendDeveloper));
+    console.log('best backendDeveloper', getInfo.call(backendDeveloper));
 }
 
 
